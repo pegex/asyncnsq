@@ -13,7 +13,7 @@ class NsqTest(BaseTest):
         super().setUp()
 
     @run_until_complete
-    async def test_writer(self):
+    async def test_01_writer(self):
         nsq = await create_writer(host=self.host, port=self.port,
                                   heartbeat_interval=30000,
                                   feature_negotiation=True,
@@ -27,7 +27,7 @@ class NsqTest(BaseTest):
             self.assertEqual(pub_res, b"OK")
 
     @run_until_complete
-    async def test_reader(self):
+    async def test_02_reader(self):
         nsq = await create_reader(nsqd_tcp_addresses=[
             f"{self.host}:{self.port}"],
             heartbeat_interval=30000,

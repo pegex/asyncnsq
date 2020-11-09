@@ -139,6 +139,9 @@ class TcpConnection:
             assert ok == b'OK'
         return resp
 
+    async def auth(self, secret):
+        return await self.execute(b'AUTH', data=secret)
+
     def _do_close(self, exc=None):
         print("this is the going close info")
         if exc:

@@ -119,6 +119,35 @@ Requirements
         - brew install snappy # snappy library from Google
         - CPPFLAGS="-I/usr/local/include -L/usr/local/lib" pip install python-snappy
 
+
+Running Tests
+-------------
+
+1. run nsq locally
+    - install nsq
+        https://nsq.io/deployment/installing.html
+    - if you've built nsq through `make`, `cd` into the `build` directory of nsq
+    - run `./nsqlookupd` and `./nsqd --lookupd-tcp-address=localhost:4160` in separate windows
+
+2. install requirements (in a virtual environment)
+    `pip install aiohttp python-snappy`
+
+3. run tests
+    `python runtests.py`
+
+    example output:
+
+    ```
+    decorator test_01_writer (tests.test_reader_and_writer.NsqTest) <_UnixSelectorEventLoop running=False closed=False debug=False> () {}
+    .decorator test_02_reader (tests.test_reader_and_writer.NsqTest) <_UnixSelectorEventLoop running=False closed=False debug=False> () {}
+    .
+    ----------------------------------------------------------------------
+    Ran 2 tests in 0.260s
+
+    OK
+    ```
+
+
 License
 -------
 

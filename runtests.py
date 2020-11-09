@@ -247,17 +247,17 @@ def runtests():
 
     finder = TestsFinder(args.testsdir, includes, excludes,
                          verbose=args.verbose)
-    self.logger = logging.getself.logger()
+    logger = logging.getLogger()
     if v == 0:
-        self.logger.setLevel(logging.CRITICAL)
+        logger.setLevel(logging.CRITICAL)
     elif v == 1:
-        self.logger.setLevel(logging.ERROR)
+        logger.setLevel(logging.ERROR)
     elif v == 2:
-        self.logger.setLevel(logging.WARNING)
+        logger.setLevel(logging.WARNING)
     elif v == 3:
-        self.logger.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
     elif v >= 4:
-        self.logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     if catchbreak:
         installHandler()
     try:
