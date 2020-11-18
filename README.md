@@ -123,21 +123,28 @@ Requirements
 Running Tests
 -------------
 
-1. run nsq locally
+1. install nsq requirements
     - install nsq
         https://nsq.io/deployment/installing.html
-    - if you've built nsq through `make`, `cd` into the `build` directory of nsq
-    - run `./nsqlookupd` and `./nsqd --lookupd-tcp-address=localhost:4160` in separate windows
 
 2. install requirements (in a virtual environment)
-    `pip install aiohttp python-snappy`
+    - `pip install aiohttp python-snappy`
 
-3. run tests
-    `python runtests.py`
+3. run the auth server in a separate terminal session
+    - `python -m aiohttp.web -H localhost -P 8080 asyncnsq.http.auth:create_dev_auth_server`
+
+4. run nsq in separate terminal sessions
+    - if you've built nsq through `make`, `cd` into the `build` directory of nsq
+    - `./nsqlookupd`
+    - `./nsqd --lookupd-tcp-address=localhost:4160 -auth-http-address=localhost:8080`
+
+5. run tests
+    - `python runtests.py`
 
     example output:
 
     ```
+    $ python runtests.py test_reader_and_writer
     decorator test_01_writer (tests.test_reader_and_writer.NsqTest) <_UnixSelectorEventLoop running=False closed=False debug=False> () {}
     .decorator test_02_reader (tests.test_reader_and_writer.NsqTest) <_UnixSelectorEventLoop running=False closed=False debug=False> () {}
     .

@@ -1,8 +1,10 @@
 import asyncio
+import json
 from ._testutils import run_until_complete, BaseTest
 from asyncnsq.tcp.connection import create_connection, TcpConnection
 from asyncnsq.http.writer import NsqdHttpWriter
 from asyncnsq.tcp.protocol import Reader, SnappyReader, DeflateReader
+from asyncnsq.utils import _convert_to_str
 
 
 class NsqConnectionTest(BaseTest):
@@ -18,6 +20,7 @@ class NsqConnectionTest(BaseTest):
             self.http_writer.create_topic(self.topic))
         print("create_topic_res", create_topic_res)
         self.assertEqual(create_topic_res, "")
+        self.auth_secret = 'test_secret'
 
     def tearDown(self):
         super().tearDown()
@@ -60,6 +63,11 @@ class NsqConnectionTest(BaseTest):
         config_res = await conn.identify(**config)
         print("test_snappy config", config_res)
         self.assertIsInstance(conn._parser, SnappyReader)
+
+        config_res = json.loads(_convert_to_str(config_res))
+        if config_res.get('auth_required') is True:
+            await conn.auth(self.auth_secret)
+
         print("test_snappy")
         await self._pub_sub_rdy_fin(conn)
         conn.close()
@@ -77,6 +85,11 @@ class NsqConnectionTest(BaseTest):
         nego_res = await conn.identify(**config)
         print(nego_res)
         self.assertIsInstance(conn._parser, DeflateReader)
+
+        nego_res = json.loads(_convert_to_str(nego_res))
+        if nego_res.get('auth_required') is True:
+            await conn.auth(self.auth_secret)
+
         await self._pub_sub_rdy_fin(conn)
         conn.close()
 
@@ -101,6 +114,11 @@ class NsqConnectionTest(BaseTest):
     async def test_message(self):
         conn = await create_connection(host=self.host, port=self.port,
                                        loop=self.loop)
+
+        resp = await conn.identify(feature_negotiation=True)
+        resp = json.loads(_convert_to_str(resp))
+        if resp.get('auth_required') is True:
+            await conn.auth(self.auth_secret)
 
         ok = await conn.execute(b'PUB', self.topic, data=b'boom')
         self.assertEqual(ok, b'OK')

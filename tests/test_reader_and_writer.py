@@ -10,6 +10,7 @@ class NsqTest(BaseTest):
         self.topic = 'foo'
         self.host = '127.0.0.1'
         self.port = 4150
+        self.auth_secret = 'test_secret'
         super().setUp()
 
     @run_until_complete
@@ -21,7 +22,8 @@ class NsqTest(BaseTest):
                                   snappy=False,
                                   deflate=False,
                                   deflate_level=0,
-                                  loop=self.loop)
+                                  loop=self.loop,
+                                  auth_secret=self.auth_secret)
         for i in range(10):
             pub_res = await nsq.pub('foo', 'bar')
             self.assertEqual(pub_res, b"OK")
@@ -36,7 +38,8 @@ class NsqTest(BaseTest):
             snappy=False,
             deflate=False,
             deflate_level=0,
-            loop=self.loop)
+            loop=self.loop,
+            auth_secret=self.auth_secret)
         await nsq.subscribe('foo', 'bar')
         num = 0
         async for msg in nsq.messages():

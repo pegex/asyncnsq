@@ -1,8 +1,9 @@
 import asyncio
+import json
 import time
 import logging
 from . import consts
-from ..utils import retry_iterator
+from ..utils import retry_iterator, _convert_to_str
 from .connection import create_connection
 from .consts import TOUCH, REQ, FIN, RDY, CLS, MPUB, PUB, SUB, AUTH, DPUB
 
@@ -13,7 +14,7 @@ async def create_writer(
         host='127.0.0.1', port=4150, loop=None, queue=None,
         heartbeat_interval=30000, feature_negotiation=True,
         tls_v1=False, snappy=False, deflate=False, deflate_level=6,
-        consumer=False, sample_rate=0, log_level=None):
+        consumer=False, sample_rate=0, log_level=None, **kwargs):
     """"
     param: host: host addr with no protocol. 127.0.0.1 
     param: port: host port 
@@ -31,8 +32,9 @@ async def create_writer(
         feature_negotiation=feature_negotiation,
         tls_v1=tls_v1, snappy=snappy, deflate=deflate,
         deflate_level=deflate_level, log_level=log_level,
-        sample_rate=sample_rate, consumer=consumer, loop=loop)
+        sample_rate=sample_rate, consumer=consumer, loop=loop, **kwargs)
     await writer.connect()
+    loop.create_task(writer.auto_reconnect())
     return writer
 
 
@@ -42,7 +44,7 @@ class Writer:
                  heartbeat_interval=30000, feature_negotiation=True,
                  tls_v1=False, snappy=False, deflate=False, deflate_level=6,
                  sample_rate=0, consumer=False, max_in_flight=42,
-                 log_level=None):
+                 log_level=None, auth_secret=None):
         # TODO: add parameters type and value validation
         self._config = {
             "deflate": deflate,
@@ -61,7 +63,7 @@ class Writer:
         self._queue = queue or asyncio.Queue(loop=self._loop)
         self._status = consts.INIT
         self._on_rdy_changed_cb = None
-        self._loop.create_task(self.auto_reconnect())
+        self._auth_secret = auth_secret.decode('utf-8') if isinstance(auth_secret, bytes) else auth_secret
 
     async def connect(self):
         logger.debug("writer init connect")
@@ -69,7 +71,13 @@ class Writer:
                                              self._queue, loop=self._loop)
 
         self._conn._on_message = self._on_message
-        await self._conn.identify(**self._config)
+        resp = await self._conn.identify(**self._config)
+        resp = json.loads(_convert_to_str(resp))
+        if resp.get('auth_required') is True:
+            if not self._auth_secret:
+                raise Exception
+            resp = await self._conn.auth(self._auth_secret)
+
         self._status = consts.CONNECTED
 
     def _on_message(self, msg):

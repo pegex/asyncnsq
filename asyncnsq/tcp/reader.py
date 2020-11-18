@@ -1,12 +1,14 @@
 import asyncio
-import random
+import json
 import logging
+import random
 import time
 from asyncnsq.http import NsqLookupd
 from asyncnsq.tcp.reader_rdy import RdyControl
 from functools import partial
 from .connection import create_connection
 from .consts import SUB
+from ..utils import _convert_to_str
 
 logger = logging.getLogger(__package__)
 
@@ -45,8 +47,7 @@ class Reader:
                  max_in_flight=42, loop=None, heartbeat_interval=30000,
                  feature_negotiation=True,
                  tls_v1=False, snappy=False, deflate=False, deflate_level=6,
-                 sample_rate=0, consumer=False, log_level=None,
-                 auth_secret=None):
+                 sample_rate=0, consumer=False, log_level=None, auth_secret=None):
         self._config = {
             "deflate": deflate,
             "deflate_level": deflate_level,
@@ -74,11 +75,10 @@ class Reader:
         self._redistribute_timeout = 5  # sec
         self._lookupd_poll_time = 30  # sec
         self.topic = None
+        self._auth_secret = auth_secret.decode('utf-8') if isinstance(auth_secret, bytes) else auth_secret
         self._rdy_control = RdyControl(idle_timeout=self._idle_timeout,
                                        max_in_flight=self._max_in_flight,
                                        loop=self._loop)
-
-        self._auth_secret = auth_secret.encode('utf-8') if isinstance(auth_secret, str) else auth_secret
 
     async def connect(self):
         logging.info('reader connecting')
@@ -101,9 +101,12 @@ class Reader:
 
     async def prepare_conn(self, conn):
         conn._on_message = partial(self._on_message, conn)
-        _ = await conn.identify(**self._config)
-        if self._auth_secret is not None:
-            _ = await conn.auth(self._auth_secret)
+        resp = await conn.identify(**self._config)
+        resp = json.loads(_convert_to_str(resp))
+        if resp.get('auth_required') is True:
+            if not self._auth_secret:
+                raise Exception
+            resp = await conn.auth(self._auth_secret)
 
     def _on_message(self, conn, msg):
         conn._last_message = time.time()
