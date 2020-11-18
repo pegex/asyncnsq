@@ -7,6 +7,14 @@ class ProtocolError(NSQException):
     """XXX"""
 
 
+class ReaderError(NSQException):
+    pass
+
+
+class WriterError(NSQException):
+    pass
+
+
 class NSQRequeueMessage(NSQException):
     pass
 
@@ -119,3 +127,6 @@ ERROR_CODES = {
 
 def make_error(code, error_message):
     return ERROR_CODES.get(code, NSQErrorCode)(error_message)
+
+
+

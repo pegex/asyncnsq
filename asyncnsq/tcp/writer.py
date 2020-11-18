@@ -6,6 +6,7 @@ from . import consts
 from ..utils import retry_iterator, _convert_to_str
 from .connection import create_connection
 from .consts import TOUCH, REQ, FIN, RDY, CLS, MPUB, PUB, SUB, AUTH, DPUB
+from .exceptions import WriterError
 
 logger = logging.getLogger(__package__)
 
@@ -75,7 +76,7 @@ class Writer:
         resp = json.loads(_convert_to_str(resp))
         if resp.get('auth_required') is True:
             if not self._auth_secret:
-                raise Exception
+                raise WriterError("Auth secret is required for NSQ connection")
             resp = await self._conn.auth(self._auth_secret)
 
         self._status = consts.CONNECTED

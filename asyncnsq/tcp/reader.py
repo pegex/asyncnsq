@@ -4,6 +4,7 @@ import logging
 import random
 import time
 from asyncnsq.http import NsqLookupd
+from asyncnsq.tcp.exceptions import ReaderError
 from asyncnsq.tcp.reader_rdy import RdyControl
 from functools import partial
 from .connection import create_connection
@@ -105,7 +106,7 @@ class Reader:
         resp = json.loads(_convert_to_str(resp))
         if resp.get('auth_required') is True:
             if not self._auth_secret:
-                raise Exception
+                raise ReaderError("Auth secret is required for NSQ connection")
             resp = await conn.auth(self._auth_secret)
 
     def _on_message(self, conn, msg):
