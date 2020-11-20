@@ -2,6 +2,7 @@ import asyncio
 import json
 from ._testutils import run_until_complete, BaseTest
 from asyncnsq.tcp.connection import create_connection, TcpConnection
+from asyncnsq.tcp.exceptions import NSQAuthFailed
 from asyncnsq.http.writer import NsqdHttpWriter
 from asyncnsq.tcp.protocol import Reader, SnappyReader, DeflateReader
 from asyncnsq.utils import _convert_to_str
@@ -36,6 +37,21 @@ class NsqConnectionTest(BaseTest):
         self.assertTrue(str(port) in conn.endpoint)
         conn.close()
         self.assertEqual(conn.closed, True)
+
+    @run_until_complete
+    async def test_auth_fail_bad_secret(self):
+        host, port = '127.0.0.1', 4150
+        conn = await create_connection(host=host, port=port,
+                                       loop=self.loop)
+        res = await conn.identify(feature_negotiation=True)
+        res = json.loads(_convert_to_str(res))
+        if res.get('auth_required') is True:
+            with self.assertRaises(NSQAuthFailed):
+                await conn.auth('this is the wrong secret')
+            conn.close()
+        else:
+            conn.close()
+            self.skipTest("no auth enabled")
 
     @run_until_complete
     async def test_tls(self):
